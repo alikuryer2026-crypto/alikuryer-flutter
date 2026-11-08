@@ -8,8 +8,9 @@ class MenuRecord {
 }
 
 class MenuRepository {
-  static bool get configured => const String.fromEnvironment('SUPABASE_URL', defaultValue: 'https://bjgffagonedmvasamtlo.supabase.co').isNotEmpty &&
-      const String.fromEnvironment('SUPABASE_ANON_KEY', defaultValue: 'sb_publishable_sGmCLa3T1L-_ha1Ga6oBdA_yYiCiMKJ').isNotEmpty;
+  static const String _url = String.fromEnvironment('SUPABASE_URL', defaultValue: 'https://bjgffagonedmvasamtlo.supabase.co');
+  static const String _key = String.fromEnvironment('SUPABASE_ANON_KEY', defaultValue: 'sb_publishable_sGmCLa3T1L-_ha1Ga6oBdA_yYiCiMKJ');
+  static bool get configured => _url.isNotEmpty && _key.isNotEmpty;
 
   static Future<List<MenuRecord>> fetchAvailable() async {
     if (!configured) return [];
