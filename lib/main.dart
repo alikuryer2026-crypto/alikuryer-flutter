@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'menu_repository.dart';
 
 const red = Color(0xFFE31827);
 const ink = Color(0xFF171717);
@@ -61,9 +62,35 @@ class _CustomerAppState extends State<CustomerApp> {
   String category = 'Barchasi';
   final Map<int, int> cart = {};
   bool placedOrder = false;
+  List<Food>? liveFoods;
+  String? loadError;
+  List<Food> get catalog => MenuRepository.configured ? (liveFoods ?? <Food>[]) : foods;
+  @override
+  void initState() {
+    super.initState();
+    if (MenuRepository.configured) _loadMenu();
+  }
+  Future<void> _loadMenu() async {
+    try {
+      final records = await MenuRepository.fetchAvailable();
+      if (!mounted) return;
+      setState(() {
+        cart.clear();
+        liveFoods = records.map((r) => Food(r.name, r.restaurant, r.price, '🍽️', 'Barchasi')).toList();
+        loadError = null;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        liveFoods = [];
+        loadError = 'Taomlarni yuklab bo‘lmadi. Ulanish va RLS sozlamalarini tekshiring.';
+      });
+    }
+  }
+
 
   int get count => cart.values.fold(0, (a, b) => a + b);
-  int get total => cart.entries.fold(0, (a, b) => a + foods[b.key].price * b.value);
+  int get total => cart.entries.fold(0, (a, b) => a + catalog[b.key].price * b.value);
   void add(int i) => setState(() => cart[i] = (cart[i] ?? 0) + 1);
   void remove(int i) => setState(() {
     final next = (cart[i] ?? 0) - 1;
@@ -132,15 +159,20 @@ class _CustomerAppState extends State<CustomerApp> {
     const SizedBox(height: 14),
     SizedBox(height: 52, child: ListView(scrollDirection: Axis.horizontal, children: ['Barchasi', 'Lavash', 'Pizza', 'Burger', 'Milliy', 'Salat'].map((c) => Padding(padding: const EdgeInsets.only(right: 8), child: ActionChip(label: Text(c), onPressed: () => setState(() {category = c; tab = 1;}), backgroundColor: Colors.white))).toList())),
     const SizedBox(height: 18),
-    _heading('Mashhur taomlar', subtitle: 'Hozircha namunaviy katalog'),
+    _heading('Mashhur taomlar', subtitle: MenuRepository.configured ? 'Supabase katalogi' : 'Hozircha namunaviy katalog'),
+    if (MenuRepository.configured && liveFoods == null) const LinearProgressIndicator(),
+    if (loadError != null) Text(loadError!, style: const TextStyle(color: red)),
+    if (MenuRepository.configured && liveFoods?.isEmpty == true && loadError == null) const Text('Hozircha faol restoran yoki taom yo‘q'),
     const SizedBox(height: 12),
-    ...List.generate(4, (i) => _foodCard(i)),
+    ...List.generate(catalog.length < 4 ? catalog.length : 4, (i) => _foodCard(i)),
   ]);
 
   Widget _catalog() {
-    final matches = List.generate(foods.length, (i) => i).where((i) => (category == 'Barchasi' || foods[i].category == category) && ('${foods[i].name} ${foods[i].restaurant}').toLowerCase().contains(query.toLowerCase())).toList();
+    final matches = List.generate(catalog.length, (i) => i).where((i) => (category == 'Barchasi' || catalog[i].category == category) && ('${catalog[i].name} ${catalog[i].restaurant}').toLowerCase().contains(query.toLowerCase())).toList();
     return ListView(padding: const EdgeInsets.fromLTRB(18, 20, 18, 110), children: [
-      _heading('Taomlar', subtitle: 'Alikuryer katalogi · demo'),
+      _heading('Taomlar', subtitle: MenuRepository.configured ? 'Supabase katalogi' : 'Alikuryer katalogi · demo'),
+      if (MenuRepository.configured && liveFoods == null) const LinearProgressIndicator(),
+      if (loadError != null) Text(loadError!, style: const TextStyle(color: red)),
       const SizedBox(height: 18),
       TextField(controller: TextEditingController(text: query)..selection = TextSelection.collapsed(offset: query.length), onChanged: (v) => setState(() => query = v), decoration: InputDecoration(prefixIcon: const Icon(Icons.search), hintText: 'Taom yoki restoran', filled: true, fillColor: Colors.white, border: OutlineInputBorder(borderRadius: BorderRadius.circular(15), borderSide: BorderSide.none))),
       const SizedBox(height: 12),
@@ -152,7 +184,7 @@ class _CustomerAppState extends State<CustomerApp> {
   }
 
   Widget _foodCard(int i) {
-    final f = foods[i];
+    final f = catalog[i];
     return Card(color: Colors.white, elevation: 0, margin: const EdgeInsets.only(bottom: 12), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)), child: Padding(padding: const EdgeInsets.all(13), child: Row(children: [
       Container(width: 82, height: 82, alignment: Alignment.center, decoration: BoxDecoration(color: const Color(0xFFFFF1F1), borderRadius: BorderRadius.circular(17)), child: Text(f.emoji, style: const TextStyle(fontSize: 43))),
       const SizedBox(width: 13),
@@ -170,7 +202,7 @@ class _CustomerAppState extends State<CustomerApp> {
   void _showCart() => showModalBottomSheet<void>(context: context, isScrollControlled: true, showDragHandle: true, backgroundColor: Colors.white, builder: (ctx) => SafeArea(child: Padding(padding: const EdgeInsets.all(20), child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.stretch, children: [
     _heading('Savatcha', subtitle: 'Demo buyurtma · haqiqiy to‘lov olinmaydi'),
     const SizedBox(height: 15),
-    ...cart.entries.map((e) => ListTile(contentPadding: EdgeInsets.zero, title: Text(foods[e.key].name), subtitle: Text(money(foods[e.key].price * e.value)), trailing: Row(mainAxisSize: MainAxisSize.min, children: [
+    ...cart.entries.map((e) => ListTile(contentPadding: EdgeInsets.zero, title: Text(catalog[e.key].name), subtitle: Text(money(catalog[e.key].price * e.value)), trailing: Row(mainAxisSize: MainAxisSize.min, children: [
       IconButton(onPressed: () {remove(e.key); Navigator.pop(ctx); _showCart();}, icon: const Icon(Icons.remove_circle_outline)),
       Text('${e.value}'),
       IconButton(onPressed: () {add(e.key); Navigator.pop(ctx); _showCart();}, icon: const Icon(Icons.add_circle_outline, color: red)),
