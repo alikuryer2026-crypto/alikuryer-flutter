@@ -1,80 +1,68 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:webview_flutter/webview_flutter.dart';
 
 void main() => runApp(const AlikuryerApp());
-
-const red = Color(0xFFD71920);
 
 class AlikuryerApp extends StatelessWidget {
   const AlikuryerApp({super.key});
   @override
   Widget build(BuildContext context) => MaterialApp(
-    title: 'Alikuryer',
     debugShowCheckedModeBanner: false,
-    theme: ThemeData(colorScheme: ColorScheme.fromSeed(seedColor: red), useMaterial3: true),
-    home: const WelcomeScreen(),
+    title: 'Alikuryer',
+    theme: ThemeData(colorSchemeSeed: const Color(0xFFD71920)),
+    home: const AlikuryerWebsite(),
   );
 }
 
-class WelcomeScreen extends StatelessWidget {
-  const WelcomeScreen({super.key});
+class AlikuryerWebsite extends StatefulWidget {
+  const AlikuryerWebsite({super.key});
   @override
-  Widget build(BuildContext context) => Scaffold(
-    backgroundColor: red,
-    body: SafeArea(child: Padding(
-      padding: const EdgeInsets.all(24),
-      child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-        const Icon(Icons.delivery_dining, size: 110, color: Colors.white),
-        const SizedBox(height: 24),
-        const Text('ALIKURYER', style: TextStyle(fontSize: 40, fontWeight: FontWeight.w900, color: Colors.white)),
-        const Text('FOOD DELIVERY', style: TextStyle(letterSpacing: 4, color: Colors.white)),
-        const SizedBox(height: 36),
-        const Text('Hamma narsa siz uchun!', textAlign: TextAlign.center, style: TextStyle(fontSize: 26, fontWeight: FontWeight.bold, color: Colors.white)),
-        const SizedBox(height: 42),
-        FilledButton(style: FilledButton.styleFrom(backgroundColor: Colors.white, foregroundColor: red, minimumSize: const Size.fromHeight(54)), onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const HomeScreen())), child: const Text('Boshlash')),
-        const SizedBox(height: 16),
-        const Text('Sinov versiyasi · SMS va to‘lovlar ulanmagan', style: TextStyle(color: Colors.white70)),
-      ]),
-    )),
-  );
+  State<AlikuryerWebsite> createState() => _AlikuryerWebsiteState();
 }
 
-class HomeScreen extends StatefulWidget {
-  const HomeScreen({super.key});
+class _AlikuryerWebsiteState extends State<AlikuryerWebsite> {
+  late final WebViewController controller;
+  int progress = 0;
+  bool error = false;
   @override
-  State<HomeScreen> createState() => _HomeScreenState();
-}
-
-class _HomeScreenState extends State<HomeScreen> {
-  int selected = 0;
-  final tabs = const ['Bosh sahifa', 'Qidiruv', 'Buyurtmalar', 'Sevimlilar', 'Profil'];
+  void initState() {
+    super.initState();
+    controller = WebViewController()
+      ..setJavaScriptMode(JavaScriptMode.unrestricted)
+      ..setBackgroundColor(Colors.white)
+      ..setNavigationDelegate(NavigationDelegate(
+        onProgress: (value) => setState(() => progress = value),
+        onPageStarted: (_) => setState(() => error = false),
+        onWebResourceError: (e) {
+          if (e.isForMainFrame == true) setState(() => error = true);
+        },
+      ))
+      ..loadRequest(Uri.parse('https://alikuryer-flavor-trail.lovable.app'));
+  }
   @override
-  Widget build(BuildContext context) => Scaffold(
-    appBar: AppBar(title: Text('Alikuryer · ${tabs[selected]}'), backgroundColor: red, foregroundColor: Colors.white),
-    body: ListView(padding: const EdgeInsets.all(20), children: [
-      if (selected == 0) ...[
-        const Text('Namangan · Taom yetkazib berish', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-        const SizedBox(height: 16),
-        const SearchBar(hintText: 'Taom yoki restoran qidiring'),
-        const SizedBox(height: 18),
-        Card(color: red, child: const Padding(padding: EdgeInsets.all(24), child: Text('Sevimli taomlaringiz tez va qulay! 🍔', style: TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold)))),
-        const SizedBox(height: 18),
-        const Text('Kategoriyalar', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-        const Wrap(spacing: 8, children: [Chip(label: Text('Burger')), Chip(label: Text('Pizza')), Chip(label: Text('Osh')), Chip(label: Text('Lavash'))]),
-        const SizedBox(height: 12),
-        const Text('Restoranlar (demo)', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-        for (final name in ['EVOS', 'Pepperoni', 'Osh Markazi', 'KFC']) Card(child: ListTile(leading: const Icon(Icons.restaurant, color: red), title: Text(name), subtitle: const Text('Namuna ma’lumot'), trailing: const Icon(Icons.chevron_right))),
-      ] else ...[
-        Text(tabs[selected], style: const TextStyle(fontSize: 26, fontWeight: FontWeight.bold)),
-        const SizedBox(height: 12),
-        const Text('Bu bo‘lim ishlab chiqilmoqda. Hozircha demo versiya.'),
-      ],
-    ]),
-    bottomNavigationBar: NavigationBar(selectedIndex: selected, onDestinationSelected: (value) => setState(() => selected = value), destinations: const [
-      NavigationDestination(icon: Icon(Icons.home_outlined), label: 'Bosh'),
-      NavigationDestination(icon: Icon(Icons.search), label: 'Qidiruv'),
-      NavigationDestination(icon: Icon(Icons.receipt_long_outlined), label: 'Buyurtma'),
-      NavigationDestination(icon: Icon(Icons.favorite_border), label: 'Sevimli'),
-      NavigationDestination(icon: Icon(Icons.person_outline), label: 'Profil'),
-    ]),
+  Widget build(BuildContext context) => PopScope(
+    canPop: false,
+    onPopInvokedWithResult: (didPop, result) async {
+      if (!didPop && await controller.canGoBack()) {
+        await controller.goBack();
+      } else if (!didPop) {
+        SystemNavigator.pop();
+      }
+    },
+    child: Scaffold(
+      body: SafeArea(
+        child: error
+          ? Center(child: Column(mainAxisSize: MainAxisSize.min, children: [
+              const Text('Internetga ulanishni tekshiring'),
+              const SizedBox(height: 12),
+              FilledButton(onPressed: () => controller.reload(), child: const Text('Qayta urinish')),
+            ]))
+          : Column(children: [
+              if (progress < 100) LinearProgressIndicator(value: progress / 100),
+              Expanded(child: WebViewWidget(controller: controller)),
+            ]),
+      ),
+    ),
   );
 }
