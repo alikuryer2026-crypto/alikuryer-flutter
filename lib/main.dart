@@ -5,8 +5,8 @@ import 'menu_repository.dart';
 const red = Color(0xFFE31827);
 const ink = Color(0xFF171717);
 const bg = Color(0xFFF7F7F7);
-const supabaseUrl = String.fromEnvironment('SUPABASE_URL');
-const supabaseAnonKey = String.fromEnvironment('SUPABASE_ANON_KEY');
+const supabaseUrl = String.fromEnvironment('SUPABASE_URL', defaultValue: 'https://bjgffagonedmvasamtlo.supabase.co');
+const supabaseAnonKey = String.fromEnvironment('SUPABASE_ANON_KEY', defaultValue: 'sb_publishable_sGmCLa3T1L-_ha1Ga6oBdA_yYiCiMKJ');
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
