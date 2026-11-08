@@ -1,14 +1,13 @@
 name: alikuryer
-description: Alikuryer food delivery demo
+description: Alikuryer original food delivery mobile app
 publish_to: none
-version: 0.1.0+1
+version: 0.2.0+2
 environment:
   sdk: '>=3.4.0 <4.0.0'
 dependencies:
   flutter:
     sdk: flutter
-  cupertino_icons: ^1.0.8
-  webview_flutter: ^4.10.0
+  supabase_flutter: ^2.9.0
 dev_dependencies:
   flutter_test:
     sdk: flutter
