@@ -31,7 +31,7 @@ const foods = [
   Food('Cezar salat', 'Fresh Food', 29000, '🥗', 'Salat'),
 ];
 
-String money(int n) => '${n.toString().replaceAllMapped(RegExp(r'(\\d)(?=(\\d{3})+(?!\\d))'), (m) => '${m[1]} ')} so‘m';
+String money(int n) => "${n.toString().replaceAllMapped(RegExp(r'(\d)(?=(\d{3})+(?!\d))'), (m) => '${m[1]} ')} so‘m";
 
 class AlikuryerApp extends StatelessWidget {
   const AlikuryerApp({super.key});
