@@ -8,8 +8,7 @@ class MenuRecord {
 }
 
 class MenuRepository {
-  static bool get configured => const String.fromEnvironment('SUPABASE_URL').isNotEmpty &&
-      const String.fromEnvironment('SUPABASE_ANON_KEY').isNotEmpty;
+  static bool get configured => Supabase.instance.client.supabaseUrl.isNotEmpty;
 
   static Future<List<MenuRecord>> fetchAvailable() async {
     if (!configured) return [];
